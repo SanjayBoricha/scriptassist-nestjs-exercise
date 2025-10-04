@@ -23,10 +23,10 @@ import { TaskStatus } from './enums/task-status.enum';
 import { TaskPriority } from './enums/task-priority.enum';
 import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
 import { RateLimit } from '../../common/decorators/rate-limit.decorator';
-
-// This guard needs to be implemented or imported from the correct location
-// We're intentionally leaving it as a non-working placeholder
-class JwtAuthGuard {}
+import { TaskFilterDto } from './dto/task-filter.dto';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '@modules/auth/decorators/current-user.decorator';
+import { User } from '@modules/users/entities/user.entity';
 
 @ApiTags('tasks')
 @Controller('tasks')
@@ -49,45 +49,14 @@ export class TasksController {
 
   @Get()
   @ApiOperation({ summary: 'Find all tasks with optional filtering' })
-  @ApiQuery({ name: 'status', required: false })
-  @ApiQuery({ name: 'priority', required: false })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  async findAll(
-    @Query('status') status?: string,
-    @Query('priority') priority?: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ) {
-    // Inefficient approach: Inconsistent pagination handling
-    if (page && !limit) {
-      limit = 10; // Default limit
-    }
+  async findAll(@Query() filterDto: TaskFilterDto, @CurrentUser() user: User) {
+    const tasks = await this.tasksService.findAll({
+      ...filterDto,
+      // Ensure users can only see their own tasks
+      userId: user.id,
+    });
 
-    // Inefficient processing: Manual filtering instead of using repository
-    let tasks = await this.tasksService.findAll();
-
-    // Inefficient filtering: In-memory filtering instead of database filtering
-    if (status) {
-      tasks = tasks.filter(task => task.status === (status as TaskStatus));
-    }
-
-    if (priority) {
-      tasks = tasks.filter(task => task.priority === (priority as TaskPriority));
-    }
-
-    // Inefficient pagination: In-memory pagination
-    if (page && limit) {
-      const startIndex = (page - 1) * limit;
-      const endIndex = page * limit;
-      tasks = tasks.slice(startIndex, endIndex);
-    }
-
-    return {
-      data: tasks,
-      count: tasks.length,
-      // Missing metadata for proper pagination
-    };
+    return tasks;
   }
 
   @Get('stats')
