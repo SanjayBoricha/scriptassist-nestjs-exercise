@@ -1,7 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { TaskStatus } from '../enums/task-status.enum';
 import { TaskPriority } from '../enums/task-priority.enum';
-import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsDate,
+  IsDateString,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 // TODO: Implement task filtering DTO
@@ -31,15 +39,16 @@ export class TaskFilterDto {
   @IsOptional()
   userId?: string;
 
-  @ApiProperty({ required: false })
-  @IsDateString()
+  @ApiProperty({ required: false, type: String, format: 'date-time' })
   @IsOptional()
+  @IsDate()
   @Type(() => Date)
   dueDateFrom?: Date;
 
-  @ApiProperty({ required: false })
-  @IsDateString()
+  @ApiProperty({ required: false, type: String, format: 'date-time' })
   @IsOptional()
+  @IsDate()
+  @Type(() => Date)
   dueDateTo?: Date;
 
   @ApiProperty({ required: false, default: 1 })
