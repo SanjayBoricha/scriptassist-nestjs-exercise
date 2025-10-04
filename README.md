@@ -9,3 +9,7 @@
 - JwtStrategy requires a secret or key
     - configs from src/config from is not loaded in AuthModule
     - Fix: import and load src/config in AppModule, AuthModule
+
+- Current tasks controller is not using AuthGuard and CurrentUser decorator
+    - Protect tasks api using AuthGuard
+    - Only allow user to view their tasks using CurrentUser decorator
