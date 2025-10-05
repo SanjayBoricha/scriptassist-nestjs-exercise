@@ -5,6 +5,7 @@
 1. Nest can't resolve dependencies of the OverdueTasksModule
     - Nest requires exporting TypeOrmModule to use repository in other module
     - Fix: Export TypeOrmModule from TaskModule
+    - Update: instead of using TaskRespository in OverdueTaskService use TaskService
 
 2. JwtStrategy requires a secret or key
     - configs from src/config from is not loaded in AuthModule
