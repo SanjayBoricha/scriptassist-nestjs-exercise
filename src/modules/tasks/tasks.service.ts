@@ -8,6 +8,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { TaskStatus } from './enums/task-status.enum';
 import { TaskFilterDto } from './dto/task-filter.dto';
+import { TaskPriority } from './enums/task-priority.enum';
 
 @Injectable()
 export class TasksService {
@@ -119,7 +120,45 @@ export class TasksService {
   async updateStatus(id: string, status: string): Promise<Task> {
     // This method will be called by the task processor
     const task = await this.findOne(id);
-    task.status = status as any;
+    task.status = status as TaskStatus;
     return this.tasksRepository.save(task);
+  }
+
+  async getStatistics(userId: string): Promise<{
+    total: number;
+    completed: number;
+    inProgress: number;
+    pending: number;
+    highPriority: number;
+  }> {
+    const statistics = await this.tasksRepository
+      .createQueryBuilder('task')
+      .select('COUNT(*)', 'total')
+      .addSelect(`SUM(CASE WHEN task.status = :completed THEN 1 ELSE 0 END)`, TaskStatus.COMPLETED)
+      .addSelect(
+        `SUM(CASE WHEN task.status = :inProgress THEN 1 ELSE 0 END)`,
+        TaskStatus.IN_PROGRESS,
+      )
+      .addSelect(`SUM(CASE WHEN task.status = :pending THEN 1 ELSE 0 END)`, TaskStatus.PENDING)
+      .addSelect(
+        `SUM(CASE WHEN task.priority = :highPriority THEN 1 ELSE 0 END)`,
+        TaskPriority.HIGH,
+      )
+      .setParameters({
+        completed: TaskStatus.COMPLETED,
+        inProgress: TaskStatus.IN_PROGRESS,
+        pending: TaskStatus.PENDING,
+        highPriority: TaskPriority.HIGH,
+      })
+      .where('task.userId = :userId', { userId })
+      .getRawOne();
+
+    return {
+      total: Number(statistics.total || 0),
+      completed: Number(statistics[TaskStatus.COMPLETED] || 0),
+      inProgress: Number(statistics[TaskStatus.IN_PROGRESS] || 0),
+      pending: Number(statistics[TaskStatus.PENDING] || 0),
+      highPriority: Number(statistics[TaskPriority.HIGH] || 0),
+    };
   }
 }
