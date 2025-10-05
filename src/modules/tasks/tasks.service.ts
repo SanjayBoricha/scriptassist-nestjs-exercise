@@ -161,4 +161,65 @@ export class TasksService {
       highPriority: Number(statistics[TaskPriority.HIGH] || 0),
     };
   }
+
+  async batchProcess(taskIds: string[], action: 'complete' | 'delete', userId: string) {
+    const results = [];
+    const foundTasks = await this.tasksRepository
+      .createQueryBuilder('task')
+      .where('task.id IN (:...ids)', { ids: taskIds })
+      .andWhere('task.userId = :userId', { userId })
+      .getMany();
+
+    const foundTaskIds = foundTasks.map(t => t.id);
+    const notFoundIds = taskIds.filter(id => !foundTaskIds.includes(id));
+
+    if ((action === 'delete' || action === 'complete') && notFoundIds.length > 0) {
+      results.push(
+        ...notFoundIds.map(id => ({
+          taskId: id,
+          success: false,
+          error: 'Task not found',
+        })),
+      );
+    }
+
+    const successMessage = action === 'complete' ? 'Task marked as completed' : 'Task deleted';
+
+    if (foundTaskIds.length > 0) {
+      try {
+        if (action === 'complete') {
+          await this.tasksRepository
+            .createQueryBuilder('task')
+            .where('task.id IN (:...ids)', { ids: foundTaskIds })
+            .update()
+            .set({ status: TaskStatus.COMPLETED })
+            .execute();
+        } else if (action === 'delete') {
+          await this.tasksRepository
+            .createQueryBuilder('task')
+            .where('task.id IN (:...ids)', { ids: foundTaskIds })
+            .delete()
+            .execute();
+        }
+
+        results.push(
+          ...foundTaskIds.map(id => ({
+            taskId: id,
+            success: true,
+            result: successMessage,
+          })),
+        );
+      } catch (error) {
+        results.push(
+          ...foundTaskIds.map(id => ({
+            taskId: id,
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          })),
+        );
+      }
+    }
+
+    return results;
+  }
 }
