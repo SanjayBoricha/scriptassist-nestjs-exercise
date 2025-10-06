@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Task } from './entities/task.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -129,6 +129,7 @@ export class TasksService {
     completed: number;
     inProgress: number;
     pending: number;
+    overdue: number;
     highPriority: number;
   }> {
     const statistics = await this.tasksRepository
@@ -141,6 +142,10 @@ export class TasksService {
       )
       .addSelect(`SUM(CASE WHEN task.status = :pending THEN 1 ELSE 0 END)`, TaskStatus.PENDING)
       .addSelect(
+        `SUM(CASE WHEN task.status = :overdue AND task.dueDate < NOW() THEN 1 ELSE 0 END)`,
+        TaskStatus.OVERDUE,
+      )
+      .addSelect(
         `SUM(CASE WHEN task.priority = :highPriority THEN 1 ELSE 0 END)`,
         TaskPriority.HIGH,
       )
@@ -148,6 +153,7 @@ export class TasksService {
         completed: TaskStatus.COMPLETED,
         inProgress: TaskStatus.IN_PROGRESS,
         pending: TaskStatus.PENDING,
+        overdue: TaskStatus.OVERDUE,
         highPriority: TaskPriority.HIGH,
       })
       .where('task.userId = :userId', { userId })
@@ -158,6 +164,7 @@ export class TasksService {
       completed: Number(statistics[TaskStatus.COMPLETED] || 0),
       inProgress: Number(statistics[TaskStatus.IN_PROGRESS] || 0),
       pending: Number(statistics[TaskStatus.PENDING] || 0),
+      overdue: Number(statistics[TaskStatus.OVERDUE] || 0),
       highPriority: Number(statistics[TaskPriority.HIGH] || 0),
     };
   }
@@ -225,11 +232,14 @@ export class TasksService {
 
   async getOverdueTasks(): Promise<Task[]> {
     const now = new Date();
-    return this.tasksRepository.find({
-      where: {
-        dueDate: LessThan(now),
-        status: TaskStatus.PENDING,
-      },
-    });
+    return this.tasksRepository
+      .createQueryBuilder('task')
+      .where('task.dueDate < :now', { now })
+      .andWhere(query => {
+        return query
+          .where('task.status = :status', { status: TaskStatus.PENDING })
+          .orWhere('task.status = :status', { status: TaskStatus.IN_PROGRESS });
+      })
+      .getMany();
   }
 }

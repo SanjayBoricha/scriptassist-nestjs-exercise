@@ -7,7 +7,7 @@ import { TaskStatus } from '@modules/tasks/enums/task-status.enum';
 
 @Injectable()
 @Processor('task-processing', {
-  concurrency: 5,
+  concurrency: 10,
   removeOnComplete: { age: 3600 },
 })
 export class TaskProcessorService extends WorkerHost {
@@ -44,15 +44,17 @@ export class TaskProcessorService extends WorkerHost {
     }
   }
 
-  private async handleStatusUpdate(job: Job) {
+  private async handleStatusUpdate(job: Job & { data: { taskId: string; status: TaskStatus } }) {
     const { taskId, status } = job.data;
 
     if (!taskId || !status) {
-      return { success: false, error: 'Missing required data' };
+      this.logger.warn(`Missing required data for job ${job.id}`);
+      throw new Error(`Missing required data`);
     }
 
     if (!Object.values(TaskStatus).includes(status)) {
-      return { success: false, error: 'Invalid status value' };
+      this.logger.warn(`Invalid status value for job ${job.id}`);
+      throw new Error(`Invalid status value`);
     }
 
     const task = await this.tasksService.updateStatus(taskId, status);
