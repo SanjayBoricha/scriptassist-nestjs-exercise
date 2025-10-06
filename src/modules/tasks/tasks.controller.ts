@@ -16,20 +16,19 @@ import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
-import { RateLimit } from '../../common/decorators/rate-limit.decorator';
 import { TaskFilterDto } from './dto/task-filter.dto';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@modules/auth/decorators/current-user.decorator';
 import { User } from '@modules/users/entities/user.entity';
 import { TaskBatchDto } from './dto/task-batch.dto';
 import { UserRole } from '@modules/users/enums/user-role.enum';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 @ApiTags('tasks')
-@Controller('tasks')
-@UseGuards(JwtAuthGuard, RateLimitGuard)
-@RateLimit({ limit: 100, windowMs: 60000 })
+@UseGuards(JwtAuthGuard, ThrottlerGuard)
+@Throttle({})
 @ApiBearerAuth()
+@Controller('tasks')
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 

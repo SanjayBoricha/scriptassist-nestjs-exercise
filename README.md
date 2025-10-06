@@ -24,3 +24,4 @@
 2. Use refresh token rotation for auth
 3. Batch process database query
 4. Add role based authorization and protect users CRUD APIs.
+5. Implement rate limiting using @nestjs/throttler

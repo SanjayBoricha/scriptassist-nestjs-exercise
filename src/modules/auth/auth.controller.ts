@@ -7,8 +7,11 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from '@modules/users/entities/user.entity';
 import { JwtRefreshAuthGuard } from './guards/jwt-refresh-auth.guard';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 @ApiTags('auth')
+@UseGuards(ThrottlerGuard)
+@Throttle({})
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

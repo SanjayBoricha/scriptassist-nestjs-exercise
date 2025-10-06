@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { UsersModule } from './modules/users/users.module';
 import { TasksModule } from './modules/tasks/tasks.module';
@@ -12,6 +12,8 @@ import { ScheduledTasksModule } from './queues/scheduled-tasks/scheduled-tasks.m
 import { CacheService } from './common/services/cache.service';
 import appConfig from '@config/app.config';
 import databaseConfig from '@config/database.config';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -57,12 +59,13 @@ import databaseConfig from '@config/database.config';
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => [
-        {
-          ttl: 60,
-          limit: 10,
-        },
-      ],
+      useFactory: (configService: ConfigService) => ({
+        throttlers: [{ limit: 100, ttl: 60000 }],
+        storage: new ThrottlerStorageRedisService({
+          host: configService.get('REDIS_HOST'),
+          port: configService.get('REDIS_PORT'),
+        }),
+      }),
     }),
 
     // Feature modules
