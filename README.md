@@ -26,3 +26,4 @@
 4. Add role based authorization and protect users CRUD APIs.
 5. Implement rate limiting using @nestjs/throttler
 6. Implement proper caching machanism using @nestjs/cache-manager 
+7. Update error response
