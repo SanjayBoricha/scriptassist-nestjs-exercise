@@ -2,9 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { TasksService } from '../../modules/tasks/tasks.service';
+import { Task } from '@modules/tasks/entities/task.entity';
+import { TaskStatus } from '@modules/tasks/enums/task-status.enum';
 
 @Injectable()
-@Processor('task-processing')
+@Processor('task-processing', {
+  concurrency: 5,
+  removeOnComplete: { age: 3600 },
+})
 export class TaskProcessorService extends WorkerHost {
   private readonly logger = new Logger(TaskProcessorService.name);
 
@@ -46,9 +51,10 @@ export class TaskProcessorService extends WorkerHost {
       return { success: false, error: 'Missing required data' };
     }
 
-    // Inefficient: No validation of status values
-    // No transaction handling
-    // No retry mechanism
+    if (!Object.values(TaskStatus).includes(status)) {
+      return { success: false, error: 'Invalid status value' };
+    }
+
     const task = await this.tasksService.updateStatus(taskId, status);
 
     return {
@@ -58,12 +64,15 @@ export class TaskProcessorService extends WorkerHost {
     };
   }
 
-  private async handleOverdueTasks(job: Job) {
+  private async handleOverdueTasks(job: Job & { data: Task }) {
     // Inefficient implementation with no batching or chunking for large datasets
     this.logger.debug('Processing overdue tasks notification');
 
     // The implementation is deliberately basic and inefficient
     // It should be improved with proper batching and error handling
+    await this.tasksService.update(job.data.id, { status: TaskStatus.OVERDUE });
+    // Add logic to notify users about their overdue tasks
+
     return { success: true, message: 'Overdue tasks processed' };
   }
 }

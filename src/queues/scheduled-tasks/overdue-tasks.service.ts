@@ -14,29 +14,32 @@ export class OverdueTasksService {
     private readonly tasksService: TasksService,
   ) {}
 
-  // TODO: Implement the overdue tasks checker
   // This method should run every hour and check for overdue tasks
   @Cron(CronExpression.EVERY_HOUR)
   async checkOverdueTasks() {
     this.logger.debug('Checking for overdue tasks...');
-
-    // TODO: Implement overdue tasks checking logic
-    // 1. Find all tasks that are overdue (due date is in the past)
-    // 2. Add them to the task processing queue
-    // 3. Log the number of overdue tasks found
-
-    // Example implementation (incomplete - to be implemented by candidates)
 
     const overdueTasks = await this.tasksService.getOverdueTasks();
 
     this.logger.log(`Found ${overdueTasks.length} overdue tasks`);
 
     // Add tasks to the queue to be processed
-    // TODO: Implement adding tasks to the queue
-
-    // this.taskQueue.add('overdue-tasks-notification', {
-    //   taskIds: overdueTasks.map(task => task.id),
-    // });
+    await Promise.all(
+      overdueTasks.map(task =>
+        this.taskQueue.add('overdue-tasks-notification', task, {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 60000, // 1 minute
+          },
+          removeOnComplete: {
+            age: 86400, // 1 day
+          },
+          removeOnFail: false,
+          priority: 1,
+        }),
+      ),
+    );
 
     this.logger.debug('Overdue tasks check completed');
   }
