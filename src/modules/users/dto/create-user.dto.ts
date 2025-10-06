@@ -17,4 +17,9 @@ export class CreateUserDto {
   @IsNotEmpty()
   @MinLength(6)
   password: string;
+
+  @ApiProperty({ example: 'optional-refresh-token' })
+  @IsString()
+  @IsNotEmpty()
+  refreshToken?: string;
 }

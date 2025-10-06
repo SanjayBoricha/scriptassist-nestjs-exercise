@@ -17,3 +17,9 @@
 
 4. Anti-pattern in controller
     - Move repository query to service instead of controllers
+
+## Performance and security improvements made
+
+1. Add concurrency in task queue
+2. Use refresh token rotation for auth
+3. Batch process database query
