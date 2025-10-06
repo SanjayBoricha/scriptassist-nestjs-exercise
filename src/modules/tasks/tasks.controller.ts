@@ -10,7 +10,6 @@ import {
   Query,
   HttpException,
   HttpStatus,
-  UseInterceptors,
   HttpCode,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
@@ -24,6 +23,7 @@ import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@modules/auth/decorators/current-user.decorator';
 import { User } from '@modules/users/entities/user.entity';
 import { TaskBatchDto } from './dto/task-batch.dto';
+import { UserRole } from '@modules/users/enums/user-role.enum';
 
 @ApiTags('tasks')
 @Controller('tasks')
@@ -45,7 +45,8 @@ export class TasksController {
     const tasks = await this.tasksService.findAll({
       ...filterDto,
       // Ensure users can only see their own tasks
-      userId: user.id,
+      // If user is admin then they can filter
+      userId: user.role === UserRole.ADMIN ? filterDto.userId : user.id,
     });
 
     return tasks;
