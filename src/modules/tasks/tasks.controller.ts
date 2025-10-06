@@ -11,6 +11,7 @@ import {
   HttpException,
   HttpStatus,
   HttpCode,
+  UseInterceptors,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -23,10 +24,12 @@ import { User } from '@modules/users/entities/user.entity';
 import { TaskBatchDto } from './dto/task-batch.dto';
 import { UserRole } from '@modules/users/enums/user-role.enum';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { LoggingInterceptor } from '@common/interceptors/logging.interceptor';
 
 @ApiTags('tasks')
 @UseGuards(JwtAuthGuard, ThrottlerGuard)
 @Throttle({})
+@UseInterceptors(LoggingInterceptor)
 @ApiBearerAuth()
 @Controller('tasks')
 export class TasksController {
